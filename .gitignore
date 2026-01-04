@@ -1,0 +1,9 @@
+# Python
+**/__pycache__/
+*.py[cod]
+backend/venv/
+.env
+
+# System
+.DS_Store
+.vscode/
