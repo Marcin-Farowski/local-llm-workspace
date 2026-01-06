@@ -22,9 +22,6 @@ class ChatRequest(BaseModel):
 
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
-    """
-    Sends a prompt to the local Ollama instance and returns the generated response.
-    """
     print(f"📩 Received prompt: {request.prompt}")
     
     try:
