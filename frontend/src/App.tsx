@@ -1,4 +1,5 @@
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
 import "./App.css";
 
 function App() {
@@ -12,7 +13,7 @@ function App() {
     setResponse("");
 
     try {
-      const res = await fetch("http://127.0.0.1:8000/api/chat", {
+      const res = await fetch("http://127.0.0.1:8081/api/chat", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -55,12 +56,11 @@ function App() {
       </div>
 
       {response && (
-        <div
-          className="response-area"
-          style={{ marginTop: "20px", textAlign: "left" }}
-        >
+        <div className="response-area">
           <h3>Response:</h3>
-          <p style={{ whiteSpace: "pre-wrap" }}>{response}</p>
+          <div className="markdown-content">
+            <ReactMarkdown>{response}</ReactMarkdown>
+          </div>
         </div>
       )}
     </div>
