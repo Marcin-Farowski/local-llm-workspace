@@ -1,70 +1,124 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import "./App.css";
 
+type Message = {
+    role: "user" | "assistant";
+    content: string;
+};
+
 function App() {
-  const [input, setInput] = useState("");
-  const [response, setResponse] = useState("");
-  const [loading, setLoading] = useState(false);
+    const [input, setInput] = useState("");
+    const [messages, setMessages] = useState<Message[]>([]);
+    const [loading, setLoading] = useState(false);
 
-  const handleSend = async () => {
-    if (!input) return;
-    setLoading(true);
-    setResponse("");
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    try {
-      const res = await fetch("http://127.0.0.1:8081/api/chat", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          prompt: input,
-          model: "llama3.1",
-        }),
-      });
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
 
-      if (!res.ok) {
-        throw new Error(`Server error: ${res.status}`);
-      }
+    useEffect(() => {
+        scrollToBottom();
+    }, [messages]);
 
-      const data = await res.json();
-      setResponse(data.response);
-    } catch (error) {
-      console.error("Error:", error);
-      setResponse("❌ Error connecting to server.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    const handleSend = async () => {
+        if (!input.trim()) return;
 
-  return (
-    <div className="container">
-      <h1>AI Chat (FastAPI + Ollama)</h1>
+        const userMessage: Message = { role: "user", content: input };
+        const newHistory = [...messages, userMessage];
 
-      <div className="card">
-        <textarea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Type your prompt here..."
-          rows={4}
-        />
+        setMessages(newHistory);
+        setInput("");
+        setLoading(true);
 
-        <button onClick={handleSend} disabled={loading}>
-          {loading ? "Generating..." : "Send"}
-        </button>
-      </div>
+        try {
+            const res = await fetch("http://localhost:8081/api/chat", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                    messages: newHistory,
+                    model: "llama3.1",
+                }),
+            });
 
-      {response && (
-        <div className="response-area">
-          <h3>Response:</h3>
-          <div className="markdown-content">
-            <ReactMarkdown>{response}</ReactMarkdown>
-          </div>
+            if (!res.ok) {
+                throw new Error(`Server error: ${res.status}`);
+            }
+
+            const data = await res.json();
+            const assistantMessage: Message = {
+                role: "assistant",
+                content: data.response,
+            };
+            setMessages([...newHistory, assistantMessage]);
+        } catch (error) {
+            console.error("Error:", error);
+            setMessages((prev) => [
+                ...prev,
+                {
+                    role: "assistant",
+                    content: "❌ Error connecting to server.",
+                },
+            ]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            handleSend();
+        }
+    };
+
+    return (
+        <div className="container">
+            <h1>AI Chat</h1>
+
+            <div className="chat-window">
+                {messages.length === 0 ? (
+                    <div className="empty-state">Start a conversation...</div>
+                ) : (
+                    messages.map((msg, index) => (
+                        <div
+                            key={index}
+                            className={`message-bubble ${
+                                msg.role === "user" ? "user-msg" : "ai-msg"
+                            }`}
+                        >
+                            <strong className="role-label">
+                                {msg.role === "user" ? "You" : "AI"}
+                            </strong>
+                            <div className="markdown-content">
+                                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                            </div>
+                        </div>
+                    ))
+                )}
+                {loading && (
+                    <div className="loading-indicator">Thinking...</div>
+                )}
+                <div ref={messagesEndRef} />
+            </div>
+
+            <div className="input-area">
+                <textarea
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    placeholder="Type your message..."
+                    rows={2}
+                />
+                <button onClick={handleSend} disabled={loading}>
+                    {loading ? "..." : "Send"}
+                </button>
+            </div>
         </div>
-      )}
-    </div>
-  );
+    );
 }
 
 export default App;
