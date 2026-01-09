@@ -1,5 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List
 import requests
@@ -23,37 +24,35 @@ class ChatRequest(BaseModel):
     messages: List[Message]
     model: str = "llama3.1"
 
+def generate_response(model: str, messages: List[dict]):
+    try:
+        with requests.post(
+            "http://localhost:11434/api/chat",
+            json={"model": model, "messages": messages, "stream": True},
+            stream = True
+        ) as r:
+            r.raise_for_status()
+
+            for line in r.iter_lines():
+                if line:
+                    chunk = json.loads(line)
+
+                    if "message" in chunk and "content" in chunk["message"]:
+                        yield chunk["message"]["content"]
+
+    except Exception as e:
+        print(f"Stream error: {e}")
+        yield f"Error: {str(e)}"
+
 @app.post("/api/chat")
 async def chat_endpoint(request: ChatRequest):
+    print(f"Streaming request for model: {request.model}")
     messages_payload = [msg.dict() for msg in request.messages]
 
-    print(f"📩 Received {len(messages_payload)} messages. Last one: {messages_payload[-1]['content']}")
-    
-    try:
-        ollama_response = requests.post(
-            "http://localhost:11434/api/chat",
-            json={
-                "model": request.model,
-                "messages": messages_payload,
-                "stream": False
-            }
-        )
-        ollama_response.raise_for_status()
-        
-        data = ollama_response.json()
-
-        print(f"🔍 DEBUG: Ollama raw response: {json.dumps(data, indent=2)}")
-
-        if "message" in data:
-            return {"response": data["message"]["content"]}
-        
-        if "error" in data:
-            print(f"❌ Ollama returned an error: {data['error']}")
-            raise HTTPException(status_code=500, detail=f"Ollama Error: {data['error']}")
-        
-    except requests.exceptions.RequestException as e:
-        print(f"❌ Error communicating with Ollama: {e}")
-        raise HTTPException(status_code=500, detail="Failed to communicate with AI model")
+    return StreamingResponse(
+        generate_response(request.model, messages_payload),
+        media_type = "text/plain"
+    )
 
 @app.get("/health")
 def health_check():

@@ -26,42 +26,60 @@ function App() {
         if (!input.trim()) return;
 
         const userMessage: Message = { role: "user", content: input };
-        const newHistory = [...messages, userMessage];
+        setMessages((prev) => [...prev, userMessage]);
+        const currentHistory = [...messages, userMessage];
 
-        setMessages(newHistory);
         setInput("");
         setLoading(true);
 
         try {
-            const res = await fetch("http://localhost:8081/api/chat", {
+            const response = await fetch("http://localhost:8081/api/chat", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    messages: newHistory,
+                    messages: currentHistory,
                     model: "llama3.1",
                 }),
             });
 
-            if (!res.ok) {
-                throw new Error(`Server error: ${res.status}`);
+            if (!response.ok || !response.body) {
+                throw new Error(`Server error: ${response.statusText}`);
             }
 
-            const data = await res.json();
-            const assistantMessage: Message = {
-                role: "assistant",
-                content: data.response,
-            };
-            setMessages([...newHistory, assistantMessage]);
+            setMessages((prev) => [
+                ...prev,
+                { role: "assistant", content: "" },
+            ]);
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let assistantResponse = "";
+
+            while (true) {
+                const { value, done } = await reader.read();
+
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                assistantResponse += chunk;
+
+                setMessages((prev) => {
+                    const newMessages = [...prev];
+                    const lastIndex = newMessages.length - 1;
+                    newMessages[lastIndex] = {
+                        role: "assistant",
+                        content: assistantResponse,
+                    };
+                    return newMessages;
+                });
+            }
         } catch (error) {
             console.error("Error:", error);
             setMessages((prev) => [
                 ...prev,
-                {
-                    role: "assistant",
-                    content: "❌ Error connecting to server.",
-                },
+                { role: "assistant", content: "Error connecting to server." },
             ]);
         } finally {
             setLoading(false);
