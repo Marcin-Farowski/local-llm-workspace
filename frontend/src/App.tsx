@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import ReactMarkdown from "react-markdown";
+import { MessageContent } from "./MessageContent";
 import "./App.css";
 
 type Message = {
@@ -63,6 +63,7 @@ function App() {
                 if (done) break;
 
                 const chunk = decoder.decode(value, { stream: true });
+                console.log("Received chunk: ", chunk);
                 assistantResponse += chunk;
 
                 setMessages((prev) => {
@@ -112,12 +113,12 @@ function App() {
                                 {msg.role === "user" ? "You" : "AI"}
                             </strong>
                             <div className="markdown-content">
-                                <ReactMarkdown>{msg.content}</ReactMarkdown>
+                                <MessageContent content={msg.content} />
                             </div>
                         </div>
                     ))
                 )}
-                {loading && (
+                {loading && messages[messages.length - 1]?.role === "user" && (
                     <div className="loading-indicator">Thinking...</div>
                 )}
                 <div ref={messagesEndRef} />

@@ -22,13 +22,6 @@ body {
     box-sizing: border-box;
 }
 
-h1 {
-    text-align: center;
-    margin-bottom: 20px;
-    font-size: 1.5rem;
-}
-
-/* Chat Window - Scrollable Area */
 .chat-window {
     flex: 1;
     overflow-y: auto;
@@ -49,7 +42,6 @@ h1 {
     margin-bottom: auto;
 }
 
-/* Message Bubbles */
 .message-bubble {
     max-width: 80%;
     padding: 12px 16px;
@@ -59,18 +51,16 @@ h1 {
     word-wrap: break-word;
 }
 
-/* User Message (Right side) */
 .user-msg {
     align-self: flex-end;
-    background-color: #0A84FF; /* Blue */
+    background-color: #0A84FF;
     color: white;
     border-bottom-right-radius: 2px;
 }
 
-/* AI Message (Left side) */
 .ai-msg {
     align-self: flex-start;
-    background-color: #383838; /* Dark Gray */
+    background-color: #383838;
     color: #E0E0E0;
     border-bottom-left-radius: 2px;
 }
@@ -83,26 +73,12 @@ h1 {
     text-transform: uppercase;
 }
 
-/* Markdown Styles inside bubbles */
-.markdown-content p {
-    margin: 0 0 10px 0;
-}
-.markdown-content p:last-child {
-    margin-bottom: 0;
-}
 .markdown-content code {
     background-color: rgba(0,0,0,0.3);
     padding: 2px 4px;
     border-radius: 4px;
 }
-.markdown-content pre {
-    background-color: #111;
-    padding: 10px;
-    border-radius: 6px;
-    overflow-x: auto;
-}
 
-/* Input Area at the bottom */
 .input-area {
     display: flex;
     gap: 10px;
